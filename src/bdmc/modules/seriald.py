@@ -1,38 +1,49 @@
-import warnings
 from types import MappingProxyType
-from typing import Callable, Any, Optional, ByteString
+from typing import Callable, Any, Optional, ByteString, Dict
 
 from serial import Serial, EIGHTBITS, PARITY_NONE, STOPBITS_ONE
 from serial.serialutil import SerialException
 from serial.threaded import ReaderThread, Protocol
 
 from bdmc.modules.port import find_serial_ports
+from .logger import _logger
 
 ReadHandler = Callable[[bytes | bytearray], Optional[Any]]
-DEFAULT_SERIAL_KWARGS = MappingProxyType({'baudrate': 115200,
-                                          'bytesize': EIGHTBITS,
-                                          'parity': PARITY_NONE,
-                                          'stopbits': STOPBITS_ONE,
-                                          'timeout': 2})
+DEFAULT_SERIAL_KWARGS = MappingProxyType(
+    {"baudrate": 115200, "bytesize": EIGHTBITS, "parity": PARITY_NONE, "stopbits": STOPBITS_ONE, "timeout": 2}
+)
 
 
-def serial_kwargs_factory(baudrate: int = 115200,
-                          bytesize: int = EIGHTBITS,
-                          parity: str = PARITY_NONE,
-                          stopbits: int = STOPBITS_ONE,
-                          timeout: float = 2) -> MappingProxyType:
-    return MappingProxyType({'baudrate': baudrate,
-                             'bytesize': bytesize,
-                             'parity': parity,
-                             'stopbits': stopbits,
-                             'timeout': timeout})
+def serial_kwargs_factory(
+    baudrate: int = 115200,
+    bytesize: int = EIGHTBITS,
+    parity: str = PARITY_NONE,
+    stopbits: int = STOPBITS_ONE,
+    timeout: float = 2,
+) -> MappingProxyType:
+    """
+    A function that generates a dictionary of serial port settings with default values.
+
+    Parameters:
+        baudrate (int): The baud rate for the serial port. Default is 115200.
+        bytesize (int): The number of data bits. Default is EIGHTBITS.
+        parity (str): The parity checking scheme. Default is PARITY_NONE.
+        stopbits (int): The number of stop bits. Default is STOPBITS_ONE.
+        timeout (float): The timeout value for the serial port. Default is 2.
+
+    Returns:
+        MappingProxyType: A read-only mapping of the serial port settings.
+    """
+    return MappingProxyType(
+        {"baudrate": baudrate, "bytesize": bytesize, "parity": parity, "stopbits": stopbits, "timeout": timeout}
+    )
 
 
-CODING_METHOD = 'ascii'
+CODING_METHOD = "ascii"
 
 
 def default_read_handler(data: bytes | bytearray) -> None:
-    print(f'\n##Received:{data.decode(CODING_METHOD)}')
+    print(f"\n##Received:{data.decode(CODING_METHOD)}")
 
 
 class ReadProtocol(Protocol):
@@ -42,7 +53,7 @@ class ReadProtocol(Protocol):
 
     def connection_made(self, transport):
         """Called when reader thread is started"""
-        warnings.warn('##ReadProtocol has been Set##')
+        _logger.info("ReadProtocol has been Set")
 
     def data_received(self, data):
         """Called with snippets received from the serial port"""
@@ -56,33 +67,47 @@ def new_ReadProtocol_factory(read_handler: Optional[ReadHandler] = None) -> Call
     return factory
 
 
-class SerialHelper:
+class SerialClient:
+    """
+    create Serial Client
+    """
 
-    def __init__(self, port: Optional[str] = None, serial_config: Optional[dict] = DEFAULT_SERIAL_KWARGS):
+    def __init__(self, port: Optional[str] = None, serial_config: Optional[Dict] = DEFAULT_SERIAL_KWARGS):
         """
         :param serial_config: a dict that contains the critical transport parameters
         :param port: the serial port to use
         """
-        available_serial_ports = find_serial_ports()
-        assert available_serial_ports, "No serial ports FOUND!"
-        self._serial: Serial = Serial(port=port, **serial_config)
-        if port is None:
+        self._serial: Serial = Serial(**serial_config)
 
-            # try to search for a new port
-            warnings.warn('Searching available Ports')
-            print(f'Available ports: {available_serial_ports}')
-            for i in available_serial_ports:
-                self._serial.port = i
-                print(f'try to open to {self._serial.port}')
+        if port is not None:
+            # 尝试使用用户提供的端口
+            self._serial.port = port
+            if not self.open():
+                raise ValueError(f"The specified port '{port}' is not available or cannot be opened.")
+
+        else:
+            # 没有提供端口，尝试自动查找并打开可用端口
+            _logger.info("Searching available Ports")
+            available_serial_ports = find_serial_ports()
+            if not available_serial_ports:
+                raise ValueError("No serial ports FOUND!")
+
+            _logger.info(f"Available ports: {available_serial_ports}")
+
+            for ava_port in available_serial_ports:
+                self._serial.port = ava_port
+                _logger.info(f"Trying to open {self._serial.port}")
                 if self.open():
                     break
+            else:
+                raise ValueError("No available serial ports could be opened.")
 
         self._read_thread: Optional[ReaderThread] = None
 
     @property
     def is_connected(self) -> bool:
 
-        return self._serial.isOpen()
+        return self._serial.is_open
 
     @property
     def port(self) -> str:
@@ -97,7 +122,7 @@ class SerialHelper:
         """
         self._serial.port = value
 
-    def open(self, logging: bool = True) -> bool:
+    def open(self) -> bool:
         """
         Connect to the serial port with the settings specified in the instance attributes using a thread-safe mechanism.
         Return True if the connection is successful, else False.
@@ -105,12 +130,12 @@ class SerialHelper:
         # 如果当前尚未连接
         try:
             # 创建一个 `Serial` 实例连接到对应的串口，并根据实例属性设置相关参数
-            self._serial.open() if not self._serial.isOpen() else None
-            print(f"##INFO:: Successfully open [{self._serial.port}]##") if logging else None
+            self._serial.open() if not self._serial.is_open else None
+            _logger.info(f"Successfully open [{self._serial.port}]")
             # 如果已经连接，直接返回 True 表示已连接
             return True
         except SerialException:
-            print(f'##INFO:: Failed to open [{self._serial.port}]##') if not self._serial.isOpen() and logging else None
+            _logger.critical(f"Failed to open [{self._serial.port}]")
             return False
 
     def close(self):
@@ -148,7 +173,7 @@ class SerialHelper:
             self._serial.write(data)
             return True
         except SerialException:
-            warnings.warn("#Exception:: Serial write error")
+            _logger.critical("Serial write error")
             return False
 
     def read(self, length: int) -> bytes | bytearray:
@@ -174,21 +199,20 @@ class SerialHelper:
         try:
             return self._serial.read(length)
         except SerialException:
-            warnings.warn("Exception:: Serial read error")
-        return b''
+            _logger.critical("Serial read error")
+        return b""
 
     def start_read_thread(self, read_handler: [ReadHandler]) -> None:
         """
         Start the thread reading loop.
         :return:
         """
-        warnings.warn('##Start Read Thread##')
-        self._read_thread = ReaderThread(serial_instance=self._serial,
-                                         protocol_factory=new_ReadProtocol_factory(read_handler))
+        _logger.info("Start Read Thread")
+        self._read_thread = ReaderThread(
+            serial_instance=self._serial, protocol_factory=new_ReadProtocol_factory(read_handler)
+        )
         self._read_thread.daemon = True
         self._read_thread.start()
 
     def stop_read_thread(self) -> None:
         self._read_thread.stop()
-
-
