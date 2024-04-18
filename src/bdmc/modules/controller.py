@@ -3,9 +3,9 @@ from queue import Queue
 from threading import Thread
 from typing import List, Optional, ByteString, Literal, TypeAlias, Sequence, Self
 
-from .cmd import CMD
-from .logger import _logger
-from .seriald import SerialClient
+from bdmc.modules.cmd import CMD
+from bdmc.modules.logger import _logger
+from bdmc.modules.seriald import SerialClient
 
 DIRECTION: TypeAlias = Literal[1, -1]
 
@@ -77,10 +77,11 @@ class CloseLoopController:
 
         _logger.info("MSG sending thread starting")
         self._msg_send_thread_should_run = True
+        _logger.info(f"MSG sending thread started")
         self._msg_send_thread = Thread(name="msg_send_thread", target=self._msg_sending_loop)
         self._msg_send_thread.daemon = True
         self._msg_send_thread.start()
-
+        _logger.info("MSG sending thread stopped")
         return self
 
     def _msg_sending_loop(self) -> None:
@@ -89,12 +90,11 @@ class CloseLoopController:
         It continuously retrieves messages from a queue and writes them to a channel until the thread should stop running.
         Returns None.
         """
-        _logger.info(f"MSG sending thread started")
+
         while self._msg_send_thread_should_run:
             temp = self._cmd_queue.get()
             _logger.debug(f"Writing {temp} to channel,remaining {self._cmd_queue.qsize()}")
             self._serial.write(temp)
-        _logger.info("MSG sending thread stopped")
 
     def set_motors_speed(self, speeds: Sequence[int]) -> Self:
         """

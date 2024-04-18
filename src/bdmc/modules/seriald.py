@@ -5,8 +5,8 @@ from serial import Serial, EIGHTBITS, PARITY_NONE, STOPBITS_ONE
 from serial.serialutil import SerialException
 from serial.threaded import ReaderThread, Protocol
 
+from bdmc.modules.logger import _logger
 from bdmc.modules.port import find_serial_ports
-from .logger import _logger
 
 ReadHandler = Callable[[bytes | bytearray], Optional[Any]]
 DEFAULT_SERIAL_KWARGS = MappingProxyType(

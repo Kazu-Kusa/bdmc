@@ -1,12 +1,13 @@
 import logging
+
 import coloredlogs
 
-
 # 初始化logger
-_logger = logging.getLogger("pyuptech")
-coloredlogs.install(logger=_logger)
+_logger = logging.getLogger("bdmc")
+coloredlogs.install(logger=_logger, level=logging.DEBUG)
 
-def set_log_level(level: int|str):
+
+def set_log_level(level: int | str):
     """
     设置日志级别
     :param level: 日志级别
@@ -14,7 +15,10 @@ def set_log_level(level: int|str):
     """
     _logger.setLevel(level)
 
-if __name__ == '__main__':
+
+set_log_level(logging.INFO)
+
+if __name__ == "__main__":
 
     _logger.debug("This is a debug log.")
     _logger.info("This is a info log.")
