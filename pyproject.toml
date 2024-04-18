@@ -1,9 +1,9 @@
 [project]
 name = "bdmc"
-version = "0.1.0"
+version = "0.1.1"
 description = "An api wrapper lib designed for the uptech BDMC divers"
 authors = [
-    {name = "Whth", email = "88489697+Whth@users.noreply.github.com"},
+    { name = "Whth", email = "88489697+Whth@users.noreply.github.com" },
 ]
 dependencies = [
     "pyserial>=3.5",
@@ -11,7 +11,7 @@ dependencies = [
 ]
 requires-python = ">=3.11"
 readme = "README.md"
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 [build-system]
 requires = ["pdm-backend"]
