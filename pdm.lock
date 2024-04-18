@@ -2,10 +2,22 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default"]
+groups = ["default", "perf"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:1d6cffbba15aa1384b2c9483f171ed8ea5cee2af47b90ce22cf1740f92e49a72"
+content_hash = "sha256:42b42bfd7fafc4280f0fb66560a0f63dfe8ae9966e6056aafdc9748a947faee1"
+
+[[package]]
+name = "colorama"
+version = "0.4.6"
+requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
+summary = "Cross-platform colored terminal text."
+groups = ["perf"]
+marker = "sys_platform == \"win32\""
+files = [
+    {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
+    {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
+]
 
 [[package]]
 name = "coloredlogs"
@@ -36,6 +48,50 @@ files = [
 ]
 
 [[package]]
+name = "iniconfig"
+version = "2.0.0"
+requires_python = ">=3.7"
+summary = "brain-dead simple config-ini parsing"
+groups = ["perf"]
+files = [
+    {file = "iniconfig-2.0.0-py3-none-any.whl", hash = "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374"},
+    {file = "iniconfig-2.0.0.tar.gz", hash = "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3"},
+]
+
+[[package]]
+name = "objprint"
+version = "0.2.3"
+requires_python = ">=3.6"
+summary = "A library that can print Python objects in human readable format"
+groups = ["perf"]
+files = [
+    {file = "objprint-0.2.3-py3-none-any.whl", hash = "sha256:1721e6f97bae5c5b86c2716a0d45a9dd2c9a4cd9f52cfc8a0dfbe801805554cb"},
+    {file = "objprint-0.2.3.tar.gz", hash = "sha256:73d0ad5a7c3151fce634c8892e5c2a050ccae3b1a353bf1316f08b7854da863b"},
+]
+
+[[package]]
+name = "packaging"
+version = "24.0"
+requires_python = ">=3.7"
+summary = "Core utilities for Python packages"
+groups = ["perf"]
+files = [
+    {file = "packaging-24.0-py3-none-any.whl", hash = "sha256:2ddfb553fdf02fb784c234c7ba6ccc288296ceabec964ad2eae3777778130bc5"},
+    {file = "packaging-24.0.tar.gz", hash = "sha256:eb82c5e3e56209074766e6885bb04b8c38a0c015d0a30036ebe7ece34c9989e9"},
+]
+
+[[package]]
+name = "pluggy"
+version = "1.4.0"
+requires_python = ">=3.8"
+summary = "plugin and hook calling mechanisms for python"
+groups = ["perf"]
+files = [
+    {file = "pluggy-1.4.0-py3-none-any.whl", hash = "sha256:7db9f7b503d67d1c5b95f59773ebb58a8c1c288129a88665838012cfb07b8981"},
+    {file = "pluggy-1.4.0.tar.gz", hash = "sha256:8c85c2876142a764e5b7548e7d9a0e0ddb46f5185161049a79b7e974454223be"},
+]
+
+[[package]]
 name = "pyreadline3"
 version = "3.4.1"
 summary = "A python implementation of GNU readline."
@@ -54,4 +110,48 @@ groups = ["default"]
 files = [
     {file = "pyserial-3.5-py2.py3-none-any.whl", hash = "sha256:c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0"},
     {file = "pyserial-3.5.tar.gz", hash = "sha256:3c77e014170dfffbd816e6ffc205e9842efb10be9f58ec16d3e8675b4925cddb"},
+]
+
+[[package]]
+name = "pytest"
+version = "8.1.1"
+requires_python = ">=3.8"
+summary = "pytest: simple powerful testing with Python"
+groups = ["perf"]
+dependencies = [
+    "colorama; sys_platform == \"win32\"",
+    "iniconfig",
+    "packaging",
+    "pluggy<2.0,>=1.4",
+]
+files = [
+    {file = "pytest-8.1.1-py3-none-any.whl", hash = "sha256:2a8386cfc11fa9d2c50ee7b2a57e7d898ef90470a7a34c4b949ff59662bb78b7"},
+    {file = "pytest-8.1.1.tar.gz", hash = "sha256:ac978141a75948948817d360297b7aae0fcb9d6ff6bc9ec6d514b85d5a65c044"},
+]
+
+[[package]]
+name = "viztracer"
+version = "0.16.2"
+requires_python = ">=3.8"
+summary = "A debugging and profiling tool that can trace and visualize python code execution"
+groups = ["perf"]
+dependencies = [
+    "objprint>0.1.3",
+]
+files = [
+    {file = "viztracer-0.16.2-cp311-cp311-macosx_10_15_x86_64.whl", hash = "sha256:b0bd434c43b7f87f76ddd21cf7371d910edb74b131aaff670a8fcc9f28251e67"},
+    {file = "viztracer-0.16.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:1bbbb9c80b08db692993c67e7b10d7b06db3eedc6c38f0d93a40ea31de82076e"},
+    {file = "viztracer-0.16.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a1e7842e437d81fb47ef8266b2dde76bf755c95305014eeec8346b2fce9711c0"},
+    {file = "viztracer-0.16.2-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:bddfe6a6f2a66f363fcca79a694986b0602ba0dc3dede57dc182cdd6d0823585"},
+    {file = "viztracer-0.16.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dc4a2639e6f18200b73a70f3e7dca4cbb3ba08e3807023fd526f44ebf2185d1e"},
+    {file = "viztracer-0.16.2-cp311-cp311-win32.whl", hash = "sha256:371496734ebb3eafd6a6e033dbf04960618089e021dc7eded95179a8f3700c40"},
+    {file = "viztracer-0.16.2-cp311-cp311-win_amd64.whl", hash = "sha256:d9c7670e7fb077fe48c92036766a6772e10a3caf41455d6244b8b1c8d48bbd87"},
+    {file = "viztracer-0.16.2-cp312-cp312-macosx_10_15_x86_64.whl", hash = "sha256:2fd8b5aa8143b5be4d696e53e8ac5027c20187c178396839f39f8aa610d5873d"},
+    {file = "viztracer-0.16.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:f3a8ddc4990154f2d400b09deefc9236d963a733d458b2825bd590ced7e7bf89"},
+    {file = "viztracer-0.16.2-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fcf8b14dc8dd1567bca3f8cb13e31665a3cbf2ee95552de0afe9179e3a7bde22"},
+    {file = "viztracer-0.16.2-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:309cf5d545222adb2581ae6aeb48d3d03d7241d335142408d87c49f1d0793f85"},
+    {file = "viztracer-0.16.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ee749a2a3f4ed662d35eb9378ff0648907aa6321befa16ad1d8bec6034b4d260"},
+    {file = "viztracer-0.16.2-cp312-cp312-win32.whl", hash = "sha256:a082dab37b6b8cea43438b80a11a6e859f1b45522b8684a2fb9af03539d83803"},
+    {file = "viztracer-0.16.2-cp312-cp312-win_amd64.whl", hash = "sha256:03cd21181fe9a630ac5fb9ff1ee83fb7a67814e51e130f0ed83300e163fbac23"},
+    {file = "viztracer-0.16.2.tar.gz", hash = "sha256:8dff5637a7b42ffdbc1ed3768ce43979e71b09893ff370bc3c3ede54afed93ee"},
 ]

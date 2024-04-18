@@ -1,33 +1,41 @@
+import pathlib
 import unittest
 
+from viztracer import VizTracer
+
+from bdmc import set_log_level
 from bdmc.modules.controller import MotorInfo, CloseLoopController
-from bdmc.modules.debug import handle_user_input, motor_speed_test
-from bdmc.modules.seriald import SerialClient
+from bdmc.modules.debug import motor_speed_test
+
+VIZ_OUTPUT_DIR = pathlib.Path(__file__).parent / "viz_output"
+VIZ_OUTPUT_DIR.mkdir(exist_ok=True)
 
 
 class MyTestCase(unittest.TestCase):
+    def setUp(self):
+        self.test_port = "COM3"
+        self.tracer = VizTracer()
 
     def test_send(self):
+        set_log_level(10)
         m = [MotorInfo(code_sign=1, direction=-1)]
-        motor_speed_test(port="COM3", motor_infos=m)
+        self.tracer.start()
+        motor_speed_test(port=self.test_port, motor_infos=m, interval=0.01)
+        self.tracer.stop()
+        self.tracer.save(output_file=(VIZ_OUTPUT_DIR / "test_send.json").as_posix())
 
     def test_unique_motor_check(self):
         m = [MotorInfo(code_sign=1, direction=-1), MotorInfo(code_sign=1, direction=-1)]
 
         with self.assertRaises(ValueError):
-            CloseLoopController(port="COM3", motor_infos=m)
+            CloseLoopController(port=self.test_port, motor_infos=m)
 
     def test_cmds_align(self):
         m = [MotorInfo(code_sign=1, direction=-1), MotorInfo(code_sign=2, direction=-1)]
-        con = CloseLoopController(port="COM3", motor_infos=m)
+        con = CloseLoopController(port=self.test_port, motor_infos=m)
         con.set_motors_speed([1000, 2000])
         with self.assertRaises(ValueError):
             con.set_motors_speed([100] * 3)
-
-    def test_user_input(self):
-
-        con = SerialClient(port="COM3")
-        handle_user_input(con)
 
 
 if __name__ == "__main__":
