@@ -108,17 +108,17 @@ class CloseLoopController:
         Returns:
             None
         """
-        if any(speeds):
-            if len(speeds) != len(self._motor_infos):
-                raise ValueError("Length of speed_list must be equal to the number of motors")
-            cmd_list = [
-                f"{motor_info.code_sign}v{speed * motor_info.direction}"
-                for motor_info, speed in zip_longest(self._motor_infos, speeds)
-            ]
-            self._cmd_queue.put(b"".join((cmd + "\r").encode("ascii") for cmd in cmd_list))
-        else:
-            self._cmd_queue.put(CMD.FULL_STOP.value)
 
+        if len(speeds) != len(self._motor_infos):
+            raise ValueError("Length of speed_list must be equal to the number of motors")
+        self._cmd_queue.put(
+            (
+                "".join(
+                    f"{motor_info.code_sign}v{speed * motor_info.direction}\r"
+                    for motor_info, speed in zip(self._motor_infos, speeds)
+                )
+            ).encode("ascii")
+        )
         return self
 
     def send_cmd(self, cmd: CMD) -> Self:
