@@ -1,7 +1,8 @@
-from itertools import zip_longest
+import threading
 from queue import Queue
 from threading import Thread
-from typing import List, Optional, ByteString, Literal, TypeAlias, Sequence, Self
+from time import sleep, time
+from typing import List, Optional, ByteString, Literal, TypeAlias, Sequence, Self, Callable
 
 from bdmc.modules.cmd import CMD
 from bdmc.modules.logger import _logger
@@ -11,6 +12,7 @@ DIRECTION: TypeAlias = Literal[1, -1]
 
 
 class MotorInfo:
+
     def __init__(self, code_sign: int, direction: DIRECTION = 1):
         self.code_sign = code_sign
         self.direction = direction
@@ -122,4 +124,49 @@ class CloseLoopController:
     def send_cmd(self, cmd: CMD) -> Self:
 
         self._cmd_queue.put(cmd.value)
+        return self
+
+    def delay_b(
+        self,
+        delay_sec: float,
+        breaker: Callable[[], bool],
+        check_interval: float = 0.01,
+    ) -> Self:
+        """
+        Delays the execution of the function for a specified amount of time.
+
+        Parameters:
+            delay_sec (float): The time in seconds to delay the execution.
+            breaker (Callable[[], bool]): A function that returns a boolean value indicating whether the delay should be terminated early.
+            check_interval (float, optional): The time interval in seconds between each check for the breaker function. Defaults to 0.01.
+
+        Returns:
+            Self: The instance of the class.
+        """
+        if check_interval > delay_sec:
+            raise ValueError(f"check_interval must be smaller than delay_sec, while {check_interval} > {delay_sec}")
+
+        ed_time = time() + delay_sec
+        stop_event = threading.Event()
+        (
+            stop_event.set() if breaker() else None
+        )  # this is to add the first time check, since the timer waits before the check
+        timer = threading.Timer(check_interval, lambda: stop_event.set() if breaker() else None)
+        while not stop_event.is_set() and time() < ed_time:
+            timer.start()
+            timer.join()
+
+        return self
+
+    def delay(self, delay_sec: float) -> Self:
+        """
+        A function to introduce a delay of a specified time.
+
+        Parameters:
+            delay_sec (float): The time in seconds to delay.
+
+        Returns:
+            Self
+        """
+        sleep(delay_sec)
         return self
