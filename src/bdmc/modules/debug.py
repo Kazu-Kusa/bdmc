@@ -69,5 +69,5 @@ def motor_speed_test(
             con.set_motors_speed([speed] * motors)
             time.sleep(interval)
 
-    con.set_motors_speed([0])
+    con.set_motors_speed([0] * motors)
     print("over")

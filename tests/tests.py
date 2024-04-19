@@ -1,4 +1,5 @@
 import pathlib
+import time
 import unittest
 
 from viztracer import VizTracer
@@ -18,7 +19,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_send(self):
         set_log_level(10)
-        m = [MotorInfo(code_sign=1, direction=-1)]
+        m = [MotorInfo(code_sign=1, direction=-1), MotorInfo(code_sign=2, direction=-1)]
         self.tracer.start()
         motor_speed_test(port=self.test_port, motor_infos=m, interval=0.01)
         self.tracer.stop()
@@ -36,6 +37,19 @@ class MyTestCase(unittest.TestCase):
         con.set_motors_speed([1000, 2000])
         with self.assertRaises(ValueError):
             con.set_motors_speed([100] * 3)
+
+    def test_delays(self):
+        m = [MotorInfo(code_sign=1, direction=-1), MotorInfo(code_sign=2, direction=-1)]
+        con = CloseLoopController(port=self.test_port, motor_infos=m)
+        start = time.time()
+        con.delay(1)
+        self.assertAlmostEqual(start + 1, time.time(), delta=0.02)
+        start = time.time()
+        con.delay_b(1, lambda: False)
+        self.assertAlmostEqual(start + 1, time.time(), delta=0.02)
+        start = time.time()
+        print(con.delay_b(1, lambda: False))
+        self.assertAlmostEqual(start + 1, time.time(), delta=0.02)
 
 
 if __name__ == "__main__":
