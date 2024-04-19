@@ -53,7 +53,7 @@ con.set_motors_speed([100, 200, 300, 400])
  .set_motors_speed([1000] * 4)  # move all 4 motors with the speed of 1000
  .set_motors_speed([0] * 4))
 
-# Chain call with a delay
+# Chain call with delay
 # In this case, these 3 cmds will be sent to motors with the specified interval
 (con
  .set_motors_speed([100, 200, 300, 400])
@@ -62,7 +62,7 @@ con.set_motors_speed([100, 200, 300, 400])
  .delay(3)  # delay 3.0 sec
  .set_motors_speed([0] * 4))
 
-# Chain call with a delay_b
+# Chain call with delay_b
 # In this case, these 3 cmds will be sent to motors with specified interval,but with a break checker
 # NOTE1: you can't set check_interval bigger than delay_sec
 from random import random
@@ -75,6 +75,44 @@ from random import random
  .delay_b(3, breaker=lambda: random() > 0.5,
           check_interval=0.02)  # delay 3.0 sec, will skip the 1.2 sec on the breaker returns True, execute the checker every 0.02 sec
  .set_motors_speed([0] * 4))
+
+# Branched chain call with delay_b_match
+# In this case, a switch-case branch has been enforced.
+# Once the breaker returns a True during the 1.2 sec delay, a FULL_STOP cmd will be sent.
+# if the breaker never return a True, then the 1.2sec delay will be fully waited and the [500]*4 cmd will be sent.
+
+# NOTE1: delay_b_match has same delay logic as delay_b, the only difference is the return value:
+# delay_b       returns Self
+# delay_b_match returns breaker()
+
+
+match (con
+       .set_motors_speed([100] * 4)
+       .delay_b_match(1.2, breaker=lambda: random() > 0.8)):
+    case True:
+        con.send_cmd(CMD.FULL_STOP)
+    case False:
+        con.set_motors_speed([500] * 4)
+    case _:
+        raise ValueError("should never be here")
+
+# A more complex usage of delay_b_match
+# Note
+from random import choice
+
+match (con
+       .set_motors_speed([100] * 4)
+       .delay_b_match(1.2, breaker=lambda: choice([0, 0, 1, 2, 3]), check_interval=0.1)):
+    case 1:
+        con.send_cmd(CMD.FULL_STOP)  # Switch to this case once the breaker returns 1
+    case 2:
+        con.set_motors_speed([666] * 4)  # Switch to this case once the breaker returns 2
+    case 3:
+        con.set_motors_speed([777] * 4)  # Switch to this case once the breaker returns 3
+    case 0:
+        con.set_motors_speed([555] * 4)  # Switch to this case if the breaker has never returned a non-zero value
+    case _:
+        raise ValueError("should never be here")
 
 
 ```
