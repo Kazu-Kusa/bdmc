@@ -1,14 +1,14 @@
-import threading
 from queue import Queue
 from threading import Thread
 from time import sleep, time
-from typing import List, Optional, ByteString, Literal, TypeAlias, Sequence, Self, Callable
+from typing import List, Optional, ByteString, Literal, TypeAlias, Sequence, Self, Callable, Any, TypeVar
 
 from bdmc.modules.cmd import CMD
 from bdmc.modules.logger import _logger
 from bdmc.modules.seriald import SerialClient
 
 DIRECTION: TypeAlias = Literal[1, -1]
+GT = TypeVar("GT")
 
 
 class MotorInfo:
@@ -129,34 +129,90 @@ class CloseLoopController:
     def delay_b(
         self,
         delay_sec: float,
-        breaker: Callable[[], bool],
+        breaker: Callable[[], Any],
         check_interval: float = 0.01,
     ) -> Self:
         """
-        Delays the execution of the function for a specified amount of time.
+        Delays the execution of the function by a specified amount of time, while checking a breaker function periodically.
 
         Parameters:
-            delay_sec (float): The time in seconds to delay the execution.
-            breaker (Callable[[], bool]): A function that returns a boolean value indicating whether the delay should be terminated early.
-            check_interval (float, optional): The time interval in seconds between each check for the breaker function. Defaults to 0.01.
+            delay_sec (float): The amount of time to delay the execution in seconds.
+            breaker (Callable[[], Any]): A function that returns a boolean value indicating whether the delay should be aborted.
+            check_interval (float, optional): The interval in seconds between each check of the breaker function. Defaults to 0.01.
 
         Returns:
-            Self: The instance of the class.
+            Self: The instance of the class itself.
+
+        Raises:
+            ValueError: If the check_interval is not at least twice as large as the delay_sec.
+
+        Notes:
+            - The delay_sec parameter specifies the total amount of time to delay the execution,
+             including the initial delay and the time spent checking the breaker function.
+            - The check_interval parameter specifies the interval in seconds between each check of the breaker function.
+             It should be at least twice as large as the delay_sec parameter to ensure accurate timing.
+            - The breaker function is called periodically to check if the delay should be aborted.
+            If the breaker function returns True, the delay is aborted and the function returns immediately.
+            - If the breaker function returns False, the function continues to check the breaker function until either
+            the delay is completed or the breaker function returns True.
+            - If the delay is completed before the breaker function returns True, the function returns immediately.
         """
-        if check_interval > delay_sec:
-            raise ValueError(f"check_interval must be smaller than delay_sec, while {check_interval} > {delay_sec}")
+        if not (delay_sec > check_interval * 2):
+            raise ValueError(
+                f"check_interval must be 2 times greater than delay_sec, while 2 x {check_interval} > {delay_sec}"
+            )
 
-        ed_time = time() + delay_sec
-        stop_event = threading.Event()
-        (
-            stop_event.set() if breaker() else None
-        )  # this is to add the first time check, since the timer waits before the check
-        timer = threading.Timer(check_interval, lambda: stop_event.set() if breaker() else None)
-        while not stop_event.is_set() and time() < ed_time:
-            timer.start()
-            timer.join()
-
+        ed_time = time() + delay_sec - check_interval
+        # this is to add the first time check, since the timer waits before the check
+        if alarm := breaker():
+            return self
+        while not alarm and time() < ed_time:
+            alarm = breaker()
+            sleep(check_interval)
         return self
+
+    @staticmethod
+    def delay_b_match(
+        delay_sec: float,
+        breaker: Callable[[], GT],
+        check_interval: float = 0.01,
+    ) -> GT:
+        """
+        Delays the execution of a function until a condition is met.
+
+        Args:
+            delay_sec (float): The number of seconds to delay the execution.
+            breaker (Callable[[], GT]): The function to be executed after the delay.
+            check_interval (float, optional): The interval between each check. Defaults to 0.01.
+
+        Returns:
+            GT: The result of the `breaker` function after the delay.
+
+        Raises:
+            ValueError: If `check_interval` is not 2 times greater than `delay_sec`.
+
+        Note:
+            - The `delay_sec` parameter specifies the total amount of time to delay the execution,
+            including the initial delay and the time spent checking the `breaker` function.
+            - The `check_interval` parameter specifies the interval in seconds between each check.
+            It should be at least twice as large as the `delay_sec` parameter to ensure accurate timing.
+            - The `breaker` function is called periodically to check if the delay should be aborted.
+            If the `breaker` function returns True, the delay is aborted and the function returns immediately.
+            - If the `breaker` function returns False, the function continues to check the `breaker` function until
+            either the delay is completed or the `breaker` function returns True.
+        """
+        if not (delay_sec > check_interval * 2):
+            raise ValueError(
+                f"check_interval must be 2 times greater than delay_sec, while 2 x {check_interval} > {delay_sec}"
+            )
+        ed_time = time() + delay_sec - check_interval
+        # this is to add the first time check, since the timer waits before the check
+        if alarm := breaker():
+            return alarm
+        while not alarm and time() < ed_time:
+            alarm = breaker()
+            sleep(check_interval)
+        return alarm
 
     def delay(self, delay_sec: float) -> Self:
         """
