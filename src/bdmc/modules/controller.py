@@ -1,14 +1,14 @@
 from queue import Queue
 from threading import Thread
 from time import sleep, time
-from typing import List, Optional, ByteString, Literal, TypeAlias, Sequence, Self, Callable, Any, TypeVar
+from typing import List, Optional, ByteString, Literal, TypeAlias, Sequence, Self, Callable, Any, TypeVar, Hashable
 
 from bdmc.modules.cmd import CMD
 from bdmc.modules.logger import _logger
 from bdmc.modules.seriald import SerialClient
 
 DIRECTION: TypeAlias = Literal[1, -1]
-GT = TypeVar("GT")
+GT = TypeVar("GT", bound=Hashable)
 
 
 class MotorInfo:
