@@ -1,7 +1,20 @@
 from queue import Queue
 from threading import Thread
 from time import sleep, time
-from typing import List, Optional, ByteString, Literal, TypeAlias, Sequence, Self, Callable, Any, TypeVar, Hashable
+from typing import (
+    List,
+    Optional,
+    ByteString,
+    Literal,
+    TypeAlias,
+    Sequence,
+    Self,
+    Callable,
+    Any,
+    TypeVar,
+    Hashable,
+    Dict,
+)
 
 from bdmc.modules.cmd import CMD
 from bdmc.modules.logger import _logger
@@ -12,6 +25,9 @@ GT = TypeVar("GT", bound=Hashable)
 
 
 class MotorInfo:
+    """
+    A class representing a motor's ID and direction.
+    """
 
     def __init__(self, code_sign: int, direction: DIRECTION = 1):
         self.code_sign = code_sign
@@ -25,7 +41,9 @@ class MotorInfo:
 
 
 class CloseLoopController:
-    def __init__(self, motor_infos: Sequence[MotorInfo], port: Optional[str] = None):
+    def __init__(
+        self, motor_infos: Sequence[MotorInfo], port: Optional[str] = None, context: Optional[Dict[str, Any]] = None
+    ) -> None:
         """
         :param motor_infos: A list of MotorInfo objects containing motor ID and direction.
         """
@@ -37,6 +55,124 @@ class CloseLoopController:
         self._cmd_queue: Queue[ByteString] = Queue()
         self._msg_send_thread: Optional[Thread] = None
         self._msg_send_thread_should_run: bool = True
+        self._context: Dict[str, Any] = context or {}
+
+    def register_context_updater(
+        self, function: Callable[..., Any], input_keys: List[str], output_keys: List[str], freeze_inputs: bool = False
+    ) -> Callable[[], None]:
+        """
+        Registers a context updater function that updates the context with the specified input and output keys.
+
+        Args:
+            function (Callable[..., Any]): The function to register as a context updater.
+            input_keys (List[str]): The list of input keys to use for the context updater.
+            output_keys (List[str]): The list of output keys to update in the context.
+            freeze_inputs (bool, optional): Whether to freeze the input data. Defaults to False.
+
+        Returns:
+            Callable[[], None]: The registered context updater function.
+
+        Raises:
+            ValueError: If either input_keys or output_keys is empty.
+            ValueError: If any input variable is not found in the context.
+            ValueError: If invalid arguments are provided.
+        """
+        if input_keys == [] and output_keys == []:
+            raise ValueError("Either input_keys or output_keys must be non-empty.")
+        # 确保输入和输出变量存在于上下文中
+        if not_included := [var for var in input_keys if var not in self._context]:
+            raise ValueError(f"Input variables {not_included} not found in context.")
+
+        context = self._context
+        input_keys = tuple(input_keys)
+        output_keys = tuple(output_keys)
+        frozen_input_data = tuple(context.get(key) for key in input_keys)
+
+        match freeze_inputs, input_keys, output_keys:
+            case _, (), (output_key,):
+
+                def _updater() -> None:
+                    context[output_key] = function()
+
+            case _, (), all_output_keys:
+
+                def _updater() -> None:
+                    for key, val in zip(all_output_keys, function()):
+                        context[key] = val
+
+            case False, (input_key,), ():
+
+                def _updater() -> None:
+                    function(context.get(input_key))
+
+            case True, (input_key,), ():
+                input_data = context.get(input_key)
+
+                def _updater() -> None:
+                    function(input_data)
+
+            case False, all_input_keys, ():
+
+                def _updater() -> None:
+                    function(*(tuple(context.get(key) for key in all_input_keys)))
+
+            case True, all_input_keys, ():
+
+                def _updater() -> None:
+                    function(*frozen_input_data)
+
+            case False, (input_key,), (output_key,):
+
+                def _updater() -> None:
+                    context[output_key] = function(context.get(input_key))
+
+            case True, (input_key,), (output_key,):
+                input_data = context.get(input_key)
+
+                def _updater() -> None:
+                    context[output_key] = function(input_data)
+
+            case False, all_input_keys, all_output_keys:
+
+                def _updater() -> None:
+                    frozen_input_data = tuple(context.get(key) for key in all_input_keys)
+                    for key, output_data in zip(all_output_keys, function(*frozen_input_data)):
+                        context[key] = output_data
+
+            case True, all_input_keys, all_output_keys:
+
+                def _updater() -> None:
+                    for key, output_data in zip(all_output_keys, function(*frozen_input_data)):
+                        context[key] = output_data
+
+            case _:
+                raise ValueError(
+                    f"Invalid arguments for register_context_updater function. got {input_keys} and {output_keys} and {freeze_inputs}"
+                )
+        return _updater
+
+    def wait_exec(self, function: Callable[[], None]) -> Self:
+        """
+        Executes the given function and returns the instance of the class itself.
+
+        Parameters:
+            function (Callable[[], None]): The function to be executed.
+
+        Returns:
+            Self: The instance of the class itself.
+        """
+        function()
+        return self
+
+    @property
+    def context(self) -> Dict[str, Any]:
+        """
+        Returns the context dictionary of the object.
+
+        :return: A dictionary containing the context of the object.
+        :rtype: Dict[str, Any]
+        """
+        return self._context
 
     @property
     def motor_ids(self) -> List[int]:
@@ -61,6 +197,9 @@ class CloseLoopController:
 
     @property
     def serial_client(self) -> SerialClient:
+        """
+        A property that returns the serial client.
+        """
         return self._serial
 
     def stop_msg_sending(self) -> Self:
