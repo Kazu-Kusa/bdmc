@@ -12,7 +12,7 @@ VIZ_OUTPUT_DIR = pathlib.Path(__file__).parent / "viz_output"
 VIZ_OUTPUT_DIR.mkdir(exist_ok=True)
 
 
-class MyTestCase(unittest.TestCase):
+class TestControllerSend(unittest.TestCase):
     def setUp(self):
         self.test_port = "COM3"
         self.tracer = VizTracer()
