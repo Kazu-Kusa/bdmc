@@ -41,6 +41,42 @@ class MotorInfo:
 
 
 class CloseLoopController:
+    """
+    CloseLoopController is a class designed to manage and control a system involving multiple motors with closed-loop feedback.
+    It provides methods for setting motor speeds, sending commands, introducing delays with breakers, and updating a shared context.
+    The controller maintains a connection to a serial client for communication with the hardware, manages a command queue,
+    and runs a dedicated thread for message sending. It also allows registering context updaters and getters to facilitate data flow within the application.
+
+    Key features and functionality include:
+
+    1. **Initialization**:
+       - Accepts a list of `MotorInfo` objects, specifying motor IDs and directions, and an optional serial port for communication.
+       - Initializes a `SerialClient` for interfacing with the hardware, a command queue, and a flag for controlling the message sending thread.
+
+    2. **Context Management**:
+       - Maintains a dictionary (`_context`) to store shared data across the application.
+       - Provides methods `register_context_updater` and `register_context_getter` to register functions that update or retrieve specific context variables.
+
+    3. **Motor Control**:
+       - `set_motors_speed`: Sets the speed of each motor based on a provided list of speeds, ensuring consistency with the provided `MotorInfo`.
+       - `send_cmd`: Adds a command to the command queue for transmission to the hardware.
+
+    4. **Message Sending**:
+       - Manages a background thread (`_msg_send_thread`) responsible for continuously retrieving messages from the command queue and writing them to the serial channel.
+       - Offers `start_msg_sending` and `stop_msg_sending` methods to control the message sending thread's lifecycle.
+
+    5. **Delay Functions**:
+       - `delay`: Introduces a simple delay for a specified duration in seconds.
+       - `delay_b`: Delays execution for a given time, periodically checking a breaker function that can abort the delay if it returns True.
+       - `delay_b_match`: Similar to `delay_b`, but returns the result of the breaker function once the delay has completed or the breaker condition is met.
+
+    6. **Utility Methods**:
+       - `wait_exec`: Executes a given function and returns the instance of the class itself.
+       - Properties `context`, `motor_ids`, `motor_dirs`, `cmd_queue`, and `serial_client` provide convenient access to internal attributes.
+
+    Overall, the CloseLoopController serves as a central hub for coordinating motor operations, handling communication with the hardware, managing shared data, and introducing controlled delays with breakers in a closed-loop motor control system.
+    """
+
     def __init__(
         self, motor_infos: Sequence[MotorInfo], port: Optional[str] = None, context: Optional[Dict[str, Any]] = None
     ) -> None:
@@ -151,6 +187,19 @@ class CloseLoopController:
                 )
         return _updater
 
+    def register_context_getter(self, var_key: str) -> Callable[[], Any]:
+        """
+        Register a context getter function for a given variable key.
+
+        Args:
+            var_key (str): The key of the variable.
+
+        Returns:
+            Callable[[], Any]: A function that returns the value of the variable.
+        """
+        context = self._context
+        return lambda: context.get(var_key)
+
     def wait_exec(self, function: Callable[[], None]) -> Self:
         """
         Executes the given function and returns the instance of the class itself.
@@ -237,12 +286,12 @@ class CloseLoopController:
             _logger.debug(f"Writing {temp} to channel,remaining {self._cmd_queue.qsize()}")
             self._serial.write(temp)
 
-    def set_motors_speed(self, speeds: Sequence[int]) -> Self:
+    def set_motors_speed(self, speeds: Sequence[int | float]) -> Self:
         """
         Set the speed for each motor based on the provided speed_list.
 
         Parameters:
-            speeds (Sequence[int]): A list of speeds for each motor.
+            speeds (Sequence[int|float]): A list of speeds for each motor.
 
         Returns:
             None
@@ -253,7 +302,7 @@ class CloseLoopController:
         self._cmd_queue.put(
             (
                 "".join(
-                    f"{motor_info.code_sign}v{speed * motor_info.direction}\r"
+                    f"{motor_info.code_sign}v{int(speed * motor_info.direction)}\r"
                     for motor_info, speed in zip(self._motor_infos, speeds)
                 )
             ).encode("ascii")
@@ -261,7 +310,15 @@ class CloseLoopController:
         return self
 
     def send_cmd(self, cmd: CMD) -> Self:
+        """
+        Add a command to the command queue.
 
+        Args:
+            cmd (CMD): The command to be added to the queue.
+
+        Returns:
+            Self: Returns the instance of the class.
+        """
         self._cmd_queue.put(cmd.value)
         return self
 
