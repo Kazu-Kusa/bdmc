@@ -14,7 +14,11 @@
 Install use pdm
 
 ```shell
+# for stable version
 pdm add bdmc 
+
+# for unstable version
+pdm add bdmc -pre
 ```
 
 ## QuickStart
