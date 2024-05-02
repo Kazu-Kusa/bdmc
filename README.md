@@ -128,7 +128,7 @@ match (con
 
 ```
 
-use `set_log_level` to silent the console, this should improve the performance in high pressure conditions
+use `set_log_level` to silent the console to improve the performance in high pressure conditions
 
 ```python
 from bdmc import set_log_level
