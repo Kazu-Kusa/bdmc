@@ -14,6 +14,13 @@
 Install use pdm
 
 ```shell
+
+# install pdm
+python -m pip install pdm
+
+# config pdm
+pdm config pypi.url https://pypi.tuna.tsinghua.edu.cn/simple
+
 # for stable version
 pdm add bdmc 
 
