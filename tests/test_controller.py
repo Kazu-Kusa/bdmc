@@ -14,7 +14,7 @@ VIZ_OUTPUT_DIR.mkdir(exist_ok=True)
 
 class TestControllerSend(unittest.TestCase):
     def setUp(self):
-        self.test_port = "COM3"
+        self.test_port = None
         self.tracer = VizTracer()
 
     def test_send(self):

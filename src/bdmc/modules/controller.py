@@ -14,6 +14,7 @@ from typing import (
     TypeVar,
     Hashable,
     Dict,
+    Tuple,
 )
 
 from bdmc.modules.cmd import CMD
@@ -38,6 +39,9 @@ class MotorInfo:
 
     def __hash__(self) -> int:
         return hash(self.code_sign)
+
+
+ClassicMIs: Tuple[MotorInfo, MotorInfo, MotorInfo, MotorInfo] = (MotorInfo(1), MotorInfo(2), MotorInfo(3), MotorInfo(4))
 
 
 class CloseLoopController:
@@ -78,7 +82,10 @@ class CloseLoopController:
     """
 
     def __init__(
-        self, motor_infos: Sequence[MotorInfo], port: Optional[str] = None, context: Optional[Dict[str, Any]] = None
+        self,
+        motor_infos: Sequence[MotorInfo] = ClassicMIs,
+        port: Optional[str] = None,
+        context: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         :param motor_infos: A list of MotorInfo objects containing motor ID and direction.

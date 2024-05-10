@@ -9,7 +9,6 @@ class TestContextUpdaterRegistration(unittest.TestCase):
     def setUp(self):
         self.con = CloseLoopController(
             motor_infos=[MotorInfo(code_sign=1, direction=-1), MotorInfo(code_sign=2, direction=-1)],
-            port="COM3",
             context={"key1": "value1", "key2": "value2"},
         )
         # 假设有一个简单的上下文字典
