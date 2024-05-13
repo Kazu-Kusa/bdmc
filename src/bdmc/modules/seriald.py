@@ -72,7 +72,12 @@ class SerialClient:
     create Serial Client
     """
 
-    def __init__(self, port: Optional[str] = None, serial_config: Optional[Dict] = DEFAULT_SERIAL_KWARGS):
+    def __init__(
+        self,
+        port: Optional[str] = None,
+        serial_config: Optional[Dict] = DEFAULT_SERIAL_KWARGS,
+        search_available_port: bool = False,
+    ):
         """
         :param serial_config: a dict that contains the critical transport parameters
         :param port: the serial port to use
@@ -85,7 +90,7 @@ class SerialClient:
             if not self.open():
                 raise ValueError(f"The specified port '{port}' is not available or cannot be opened.")
 
-        else:
+        elif search_available_port:
             # 没有提供端口，尝试自动查找并打开可用端口
             _logger.info("Searching available Ports")
             available_serial_ports = find_serial_ports()
@@ -96,12 +101,12 @@ class SerialClient:
 
             for ava_port in available_serial_ports:
                 self._serial.port = ava_port
-                _logger.info(f"Trying to open {self._serial.port}")
                 if self.open():
                     break
             else:
                 raise ValueError("No available serial ports could be opened.")
-
+        else:
+            pass
         self._read_thread: Optional[ReaderThread] = None
 
     @property
@@ -129,6 +134,8 @@ class SerialClient:
         """
         # 如果当前尚未连接
         try:
+            _logger.info(f"Trying to open {self._serial.port}")
+
             # 创建一个 `Serial` 实例连接到对应的串口，并根据实例属性设置相关参数
             self._serial.open() if not self._serial.is_open else None
             _logger.info(f"Successfully open [{self._serial.port}]")

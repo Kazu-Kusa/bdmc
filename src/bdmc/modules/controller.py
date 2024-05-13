@@ -86,14 +86,13 @@ class CloseLoopController:
         motor_infos: Sequence[MotorInfo] = ClassicMIs,
         port: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
+        search_available_port: bool = False,
     ) -> None:
-        """
-        :param motor_infos: A list of MotorInfo objects containing motor ID and direction.
-        """
+
         if len(motor_infos) != len(set(motor_infos)):
             raise ValueError("Motor infos must be unique.")
 
-        self._serial: SerialClient = SerialClient(port=port)
+        self._serial: SerialClient = SerialClient(port=port, search_available_port=search_available_port)
         self._motor_infos: Sequence[MotorInfo] = motor_infos
         self._cmd_queue: Queue[ByteString] = Queue()
         self._msg_send_thread: Optional[Thread] = None
