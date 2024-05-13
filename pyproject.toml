@@ -1,6 +1,6 @@
 [project]
 name = "bdmc"
-version = "0.1.5"
+version = "0.1.5.1"
 description = "An api wrapper lib designed for the uptech BDMC divers"
 authors = [
     { name = "Whth", email = "88489697+Whth@users.noreply.github.com" },
