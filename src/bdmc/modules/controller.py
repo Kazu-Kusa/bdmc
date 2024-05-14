@@ -261,6 +261,9 @@ class CloseLoopController:
         """
         Stop the message sending by setting the _msg_send_thread_should_run flag to False and joining the message send thread.
         """
+        if self._msg_send_thread is None:
+            _logger.error("Message sending thread is not running")
+            return self
         self._msg_send_thread_should_run = False
         self._msg_send_thread.join()
         self._msg_send_thread = None
@@ -270,6 +273,12 @@ class CloseLoopController:
         """
         A description of the entire function, its parameters, and its return types.
         """
+
+        if not self._serial.is_connected:
+            _logger.error("Serial port is not connected")
+            if not self._serial.open():
+                _logger.error(f"Failed to open serial port {self._serial.port}")
+                return self
 
         _logger.info("MSG sending thread starting")
         self._msg_send_thread_should_run = True
