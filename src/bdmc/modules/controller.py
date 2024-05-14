@@ -265,7 +265,7 @@ class CloseLoopController:
             _logger.error("Message sending thread is not running.")
             return self
         _logger.info("Try to stop message sending thread.")
-        while self._cmd_queue.empty():
+        while not self._cmd_queue.empty():
             sleep(0.1)
 
         self._msg_send_thread_should_run = False
