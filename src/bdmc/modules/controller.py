@@ -262,8 +262,9 @@ class CloseLoopController:
         Stop the message sending by setting the _msg_send_thread_should_run flag to False and joining the message send thread.
         """
         if self._msg_send_thread is None:
-            _logger.error("Message sending thread is not running")
+            _logger.error("Message sending thread is not running.")
             return self
+        _logger.info("Try to stop message sending thread.")
         self._msg_send_thread_should_run = False
         self._msg_send_thread.join()
         self._msg_send_thread = None
@@ -282,24 +283,27 @@ class CloseLoopController:
 
         _logger.info("MSG sending thread starting")
         self._msg_send_thread_should_run = True
-        _logger.info(f"MSG sending thread started")
-        self._msg_send_thread = Thread(name="msg_send_thread", target=self._msg_sending_loop)
-        self._msg_send_thread.daemon = True
+
+        cmd_queue_get = self._cmd_queue.get
+        serial_write = self._serial.write
+
+        def _msg_sending_loop() -> None:
+            """
+            A function that handles the sending of messages in a loop.
+            It continuously retrieves messages from a queue and writes them to a channel until the thread should stop running.
+            Returns None.
+            """
+
+            while self._msg_send_thread_should_run:
+                temp = cmd_queue_get()
+                _logger.debug(f"Writing {temp} to channel.")
+                serial_write(temp)
+            _logger.info("MSG sending thread sopped")
+
+        self._msg_send_thread = Thread(name="msg_send_thread", target=_msg_sending_loop, daemon=True)
         self._msg_send_thread.start()
-        _logger.info("MSG sending thread stopped")
+        _logger.info("MSG sending thread started")
         return self
-
-    def _msg_sending_loop(self) -> None:
-        """
-        A function that handles the sending of messages in a loop.
-        It continuously retrieves messages from a queue and writes them to a channel until the thread should stop running.
-        Returns None.
-        """
-
-        while self._msg_send_thread_should_run:
-            temp = self._cmd_queue.get()
-            _logger.debug(f"Writing {temp} to channel,remaining {self._cmd_queue.qsize()}")
-            self._serial.write(temp)
 
     def set_motors_speed(self, speeds: Sequence[int | float]) -> Self:
         """
