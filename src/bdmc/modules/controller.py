@@ -348,7 +348,7 @@ class CloseLoopController:
     def delay_b(
         self,
         delay_sec: float,
-        breaker: Callable[[], Any],
+        breaker: Callable[[], bool] | Callable[[], int] | Callable[[], float] | Callable[[], Any],
         check_interval: float = 0.01,
     ) -> Self:
         """
@@ -375,7 +375,7 @@ class CloseLoopController:
     @staticmethod
     def delay_b_match(
         delay_sec: float,
-        breaker: Callable[[], GT],
+        breaker: Callable[[], bool] | Callable[[], int] | Callable[[], float] | Callable[[], GT],
         check_interval: float = 0.01,
     ) -> GT:
         """
