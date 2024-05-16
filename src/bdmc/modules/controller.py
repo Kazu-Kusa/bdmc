@@ -376,10 +376,6 @@ class CloseLoopController:
             the delay is completed or the breaker function returns True.
             - If the delay is completed before the breaker function returns True, the function returns immediately.
         """
-        if not (delay_sec > check_interval * 2):
-            raise ValueError(
-                f"check_interval must be 2 times greater than delay_sec, while 2 x {check_interval} > {delay_sec}"
-            )
 
         ed_time = time() + delay_sec - check_interval
         # this is to add the first time check, since the timer waits before the check
@@ -420,10 +416,7 @@ class CloseLoopController:
             - If the `breaker` function returns False, the function continues to check the `breaker` function until
             either the delay is completed or the `breaker` function returns True.
         """
-        if not (delay_sec > check_interval * 2):
-            raise ValueError(
-                f"check_interval must be 2 times greater than delay_sec, while 2 x {check_interval} > {delay_sec}"
-            )
+
         ed_time = time() + delay_sec - check_interval
         # this is to add the first time check, since the timer waits before the check
         if alarm := breaker():
