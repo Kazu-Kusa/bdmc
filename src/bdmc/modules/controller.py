@@ -352,29 +352,15 @@ class CloseLoopController:
         check_interval: float = 0.01,
     ) -> Self:
         """
-        Delays the execution of the function by a specified amount of time, while checking a breaker function periodically.
+        A function to introduce a delay of a specified time with a breaker function.
 
         Parameters:
-            delay_sec (float): The amount of time to delay the execution in seconds.
-            breaker (Callable[[], Any]): A function that returns a boolean value indicating whether the delay should be aborted.
-            check_interval (float, optional): The interval in seconds between each check of the breaker function. Defaults to 0.01.
+            delay_sec (float): The time in seconds to delay.
+            breaker (Callable[[], Any]): The breaker function that can abort the delay.
+            check_interval (float): The interval to check the breaker function.
 
         Returns:
-            Self: The instance of the class itself.
-
-        Raises:
-            ValueError: If the check_interval is not at least twice as large as the delay_sec.
-
-        Notes:
-            - The delay_sec parameter specifies the total amount of time to delay the execution,
-             including the initial delay and the time spent checking the breaker function.
-            - The check_interval parameter specifies the interval in seconds between each check of the breaker function.
-             It should be at least twice as large as the delay_sec parameter to ensure accurate timing.
-            - The breaker function is called periodically to check if the delay should be aborted.
-            If the breaker function returns True, the delay is aborted and the function returns immediately.
-            - If the breaker function returns False, the function continues to check the breaker function until either
-            the delay is completed or the breaker function returns True.
-            - If the delay is completed before the breaker function returns True, the function returns immediately.
+            Self: Returns the instance of the class.
         """
 
         ed_time = time() + delay_sec - check_interval
@@ -393,28 +379,18 @@ class CloseLoopController:
         check_interval: float = 0.01,
     ) -> GT:
         """
-        Delays the execution of a function until a condition is met.
+        Delays the execution based on the specified delay time and checks a breaker function periodically.
 
-        Args:
-            delay_sec (float): The number of seconds to delay the execution.
-            breaker (Callable[[], GT]): The function to be executed after the delay.
-            check_interval (float, optional): The interval between each check. Defaults to 0.01.
+        Parameters:
+            delay_sec (float): The amount of time to delay the execution in seconds.
+            breaker (Callable[[], GT]): A function that returns the status of the delay.
+            check_interval (float): The interval between each check of the breaker function.
 
         Returns:
-            GT: The result of the `breaker` function after the delay.
+            GT: The result of the breaker function.
 
-        Raises:
-            ValueError: If `check_interval` is not 2 times greater than `delay_sec`.
-
-        Note:
-            - The `delay_sec` parameter specifies the total amount of time to delay the execution,
-            including the initial delay and the time spent checking the `breaker` function.
-            - The `check_interval` parameter specifies the interval in seconds between each check.
-            It should be at least twice as large as the `delay_sec` parameter to ensure accurate timing.
-            - The `breaker` function is called periodically to check if the delay should be aborted.
-            If the `breaker` function returns True, the delay is aborted and the function returns immediately.
-            - If the `breaker` function returns False, the function continues to check the `breaker` function until
-            either the delay is completed or the `breaker` function returns True.
+        Notes:
+            - The function delays the execution by the specified time and checks the breaker function periodically.
         """
 
         ed_time = time() + delay_sec - check_interval
