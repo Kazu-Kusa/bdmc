@@ -191,6 +191,7 @@ class CloseLoopController:
                 raise ValueError(
                     f"Invalid arguments for register_context_updater function. got {input_keys} and {output_keys} and {freeze_inputs}"
                 )
+        self._context.update({key: None for key in output_keys})
         return _updater
 
     def register_context_getter(self, var_key: str) -> Callable[[], Any]:
