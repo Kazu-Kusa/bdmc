@@ -245,6 +245,13 @@ class CloseLoopController:
         return [motor_info.direction for motor_info in self._motor_infos]
 
     @property
+    def motor_infos(self) -> Sequence[MotorInfo]:
+        """
+        Return the list of motor infos.
+        """
+        return self._motor_infos
+
+    @property
     def cmd_queue(self) -> Queue[ByteString]:
         """
         Return the message queue.
