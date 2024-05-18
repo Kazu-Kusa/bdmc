@@ -251,6 +251,13 @@ class CloseLoopController:
         """
         return self._motor_infos
 
+    @motor_infos.setter
+    def motor_infos(self, value: Sequence[MotorInfo]) -> None:
+        """
+        Set the list of motor infos.
+        """
+        self._motor_infos = value
+
     @property
     def cmd_queue(self) -> Queue[ByteString]:
         """
