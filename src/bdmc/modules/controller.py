@@ -99,113 +99,106 @@ class CloseLoopController:
         self._msg_send_thread_should_run: bool = True
         self._context: Dict[str, Any] = context or {}
 
-    def register_context_updater(
-        self, function: Callable[..., Any], input_keys: List[str], output_keys: List[str], freeze_inputs: bool = False
+    def register_context_executor(
+        self,
+        function: Callable[..., Any],
+        output_keys: Sequence[str] | str = (),
+        input_keys: Sequence[str] | str = (),
+        freeze_inputs: bool = False,
+        function_name: Optional[str] = "_executor",
     ) -> Callable[[], None]:
         """
-        Registers a context updater function that updates the context with the specified input and output keys.
+        Registers a function to be executed in the context of the class.
 
         Args:
-            function (Callable[..., Any]): The function to register as a context updater.
-            input_keys (List[str]): The list of input keys to use for the context updater.
-            output_keys (List[str]): The list of output keys to update in the context.
-            freeze_inputs (bool, optional): Whether to freeze the input data. Defaults to False.
+            function (Callable[..., Any]): The function to be executed.
+            output_keys (Sequence[str] | str, optional): The keys in the context where the function's output will be stored. Defaults to ().
+            input_keys (Sequence[str] | str, optional): The keys in the context that the function will use as input. Defaults to ().
+            freeze_inputs (bool, optional): Whether to freeze the input values so that they are not modified during execution. Defaults to False.
+            function_name (Optional[str], optional): The name of the function. Defaults to "_executor".
 
         Returns:
-            Callable[[], None]: The registered context updater function.
+            Callable[[], None]: The registered function.
 
         Raises:
-            ValueError: If either input_keys or output_keys is empty.
-            ValueError: If any input variable is not found in the context.
-            ValueError: If invalid arguments are provided.
+            ValueError: If neither input_keys nor output_keys are provided, or if the function_name contains spaces.
+            ValueError: If any input_keys are not found in the context.
+            ValueError: If freeze_inputs is True and input_keys is empty.
+            ValueError: If any keys in input_keys or output_keys collide with context keys.
+
         """
-        if input_keys == [] and output_keys == []:
-            raise ValueError("Either input_keys or output_keys must be non-empty.")
-        # 确保输入和输出变量存在于上下文中
+        if not (input_keys or output_keys):
+            raise ValueError(
+                f"Either input_keys or output_keys must be non-empty. "
+                f"You should not register executor as you function needs/dumps not data in/to the context."
+            )
+        if " " in function_name:
+            raise ValueError(f"function_name cannot contain spaces. <{function_name}> is invalid.")
+        # 确保输入存在于上下文中
         if not_included := [var for var in input_keys if var not in self._context]:
             raise ValueError(f"Input variables {not_included} not found in context.")
 
-        context = self._context
-        input_keys = tuple(input_keys)
-        output_keys = tuple(output_keys)
-        frozen_input_data = tuple(context.get(key) for key in input_keys)
+        input_keys: Tuple[str] = tuple(input_keys) if isinstance(input_keys, Sequence) else (input_keys,)
+        output_keys: Tuple[str] = tuple(output_keys) if isinstance(output_keys, Sequence) else (output_keys,)
+        if freeze_inputs and not input_keys:
+            raise ValueError("If freeze_inputs is True, input_keys must be non-empty.")
+        function_context: Dict[str, Any] = {
+            "__func": function,
+            "__input_keys": input_keys,
+            "__output_keys": output_keys,
+            "__context": self._context,
+        }
 
-        match freeze_inputs, input_keys, output_keys:
-            case _, (), (output_key,):
-
-                def _updater() -> None:
-                    context[output_key] = function()
-
-            case _, (), all_output_keys:
-
-                def _updater() -> None:
-                    for key, val in zip(all_output_keys, function()):
-                        context[key] = val
-
-            case False, (input_key,), ():
-
-                def _updater() -> None:
-                    function(context.get(input_key))
-
-            case True, (input_key,), ():
-                input_data = context.get(input_key)
-
-                def _updater() -> None:
-                    function(input_data)
-
-            case False, all_input_keys, ():
-
-                def _updater() -> None:
-                    function(*(tuple(context.get(key) for key in all_input_keys)))
-
-            case True, all_input_keys, ():
-
-                def _updater() -> None:
-                    function(*frozen_input_data)
-
-            case False, (input_key,), (output_key,):
-
-                def _updater() -> None:
-                    context[output_key] = function(context.get(input_key))
-
-            case True, (input_key,), (output_key,):
-                input_data = context.get(input_key)
-
-                def _updater() -> None:
-                    context[output_key] = function(input_data)
-
-            case False, all_input_keys, all_output_keys:
-
-                def _updater() -> None:
-                    frozen_input_data = tuple(context.get(key) for key in all_input_keys)
-                    for key, output_data in zip(all_output_keys, function(*frozen_input_data)):
-                        context[key] = output_data
-
-            case True, all_input_keys, all_output_keys:
-
-                def _updater() -> None:
-                    for key, output_data in zip(all_output_keys, function(*frozen_input_data)):
-                        context[key] = output_data
-
-            case _:
+        func_header = f"def {function_name}()->None:\n"
+        output_unpack_string = (",".join(f"__context['{k}']" for k in output_keys) + "=") if output_keys else ""
+        if freeze_inputs:
+            if collied_keys := [k for k in function_context if k in self._context]:
                 raise ValueError(
-                    f"Invalid arguments for register_context_updater function. got {input_keys} and {output_keys} and {freeze_inputs}"
+                    f"{collied_keys} collides with context keys, please use different keys in input_keys and output_keys"
                 )
-        self._context.update({key: None for key in output_keys})
-        return _updater
+            function_context.update(self._context)
+            input_unpack_string = ", ".join(input_keys)
 
-    def register_context_getter(self, var_key: str) -> Callable[[], Any]:
+        else:
+            input_unpack_string = ",".join(f"__context['{k}']" for k in input_keys)
+
+        func_body = f" {output_unpack_string}__func({input_unpack_string})"
+        func = func_header + func_body
+
+        self._context.update({key: None for key in output_keys})
+        exec(func, function_context)
+        return function_context.get(function_name)
+
+    def register_context_getter(self, var_key: str | Sequence[str]) -> Callable[[], Any]:
         """
-        Register a context getter function for a given variable key.
+        Registers a context getter function that retrieves values from the internal context dictionary.
 
         Args:
-            var_key (str): The key of the variable.
+            var_key (str | Sequence[str]): The key or keys to retrieve from the context dictionary.
 
         Returns:
-            Callable[[], Any]: A function that returns the value of the variable.
+            Callable[[], Any]: A function that, when called, retrieves the value(s) associated with the provided key(s) from the context dictionary.
+
+        Raises:
+            ValueError: If the var_key parameter is not a string or a sequence of strings with length greater than 1.
+
+        Example:
+            >>> controller = CloseLoopController()
+            >>> controller.register_context_getter("var1")()
+            1
+            >>> controller.register_context_getter(["var2", "var3"])()
+            (2, 3)
         """
         context = self._context
-        return lambda: context.get(var_key)
+        if isinstance(var_key, str):
+            return lambda: context.get(var_key)
+        elif isinstance(var_key, Sequence) and len(var_key) == 1:
+            var_key = var_key[0]
+            return lambda: context.get(var_key)
+        elif isinstance(var_key, Sequence) and len(var_key) > 1:
+            return lambda: tuple(context.get(key) for key in var_key)
+        else:
+            raise ValueError(f"Invalid variable key type: {type(var_key)} | {var_key}")
 
     def wait_exec(self, function: Callable[[], None]) -> Self:
         """
