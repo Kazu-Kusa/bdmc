@@ -165,7 +165,7 @@ class CloseLoopController:
         func_body = f" {output_unpack_string}__func({input_unpack_string})"
         func = func_header + func_body
 
-        self._context.update({key: None for key in output_keys not in self._context})
+        self._context.update({key: None for key in output_keys if key not in self._context})
         exec(func, function_context)
         return function_context.get(function_name)
 
