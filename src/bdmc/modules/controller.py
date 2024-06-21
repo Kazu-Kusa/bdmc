@@ -21,6 +21,7 @@ from bdmc.modules.cmd import CMD
 from bdmc.modules.logger import _logger
 from bdmc.modules.seriald import SerialClient
 
+Context: TypeAlias = Dict[str, Any]
 DIRECTION: TypeAlias = Literal[1, -1]
 GT = TypeVar("GT", bound=Hashable)
 
@@ -106,7 +107,8 @@ class CloseLoopController:
         input_keys: Sequence[str] | str = (),
         freeze_inputs: bool = False,
         function_name: Optional[str] = "_executor",
-    ) -> Callable[[], None]:
+        return_median: bool = False,
+    ) -> Callable[[], None] | Tuple[str, Context]:
         """
         Registers a function to be executed in the context of the class.
 
@@ -116,9 +118,9 @@ class CloseLoopController:
             input_keys (Sequence[str] | str, optional): The keys in the context that the function will use as input. Defaults to ().
             freeze_inputs (bool, optional): Whether to freeze the input values so that they are not modified during execution. Defaults to False.
             function_name (Optional[str], optional): The name of the function. Defaults to "_executor".
-
+            return_median (bool): if return the median instead of the compiled obj
         Returns:
-            Callable[[], None]: The registered function.
+            Callable[[], None] | Tuple[str, Context]: The registered function or the median
 
         Raises:
             ValueError: If neither input_keys nor output_keys are provided, or if the function_name contains spaces.
@@ -166,6 +168,8 @@ class CloseLoopController:
         func = func_header + func_body
 
         self._context.update({key: None for key in output_keys if key not in self._context})
+        if return_median:
+            return func, function_context
         exec(func, function_context)
         return function_context.get(function_name)
 
