@@ -139,9 +139,8 @@ class CloseLoopController:
         # 确保输入存在于上下文中
         if not_included := [var for var in input_keys if var not in self._context]:
             raise ValueError(f"Input variables {not_included} not found in context.")
-
-        input_keys: Tuple[str] = tuple(input_keys) if isinstance(input_keys, Sequence) else (input_keys,)
-        output_keys: Tuple[str] = tuple(output_keys) if isinstance(output_keys, Sequence) else (output_keys,)
+        input_keys: Tuple[str] = (input_keys,) if isinstance(input_keys, str) else tuple(input_keys)
+        output_keys: Tuple[str] = (output_keys,) if isinstance(output_keys, str) else tuple(output_keys)
         if freeze_inputs and not input_keys:
             raise ValueError("If freeze_inputs is True, input_keys must be non-empty.")
         function_context: Dict[str, Any] = {
