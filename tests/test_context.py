@@ -24,6 +24,17 @@ class TestContextUpdaterRegistration(unittest.TestCase):
         updater_str, _ = self.con.register_context_executor(func, ["output"], [], return_median=True)
         print(updater_str)
 
+    def test_case_1_no_inputs_and_single_output_plain(self):
+        # 函数无输入，单个输出
+        func = MagicMock(return_value=["output_value", "as"])
+        updater = self.con.register_context_executor(func, "output", [])
+        updater()
+        func.assert_called_once()
+        print(self.con.context)
+        self.assertEqual(self.con.context["output"], ["output_value", "as"])
+        updater_str, _ = self.con.register_context_executor(func, ["output"], [], return_median=True)
+        print(updater_str)
+
     def test_case_2_no_inputs_and_multiple_outputs(self):
         # 函数无输入，多个输出
         func = MagicMock(return_value=["out1", "out2"])
