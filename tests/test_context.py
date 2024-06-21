@@ -16,7 +16,7 @@ class TestContextUpdaterRegistration(unittest.TestCase):
     def test_case_1_no_inputs_and_single_output(self):
         # 函数无输入，单个输出
         func = MagicMock(return_value=["output_value", "as"])
-        updater = self.con.register_context_executor(func, ["output"], [])
+        updater = self.con.register_context_executor(func, "output", [])
         updater()
         func.assert_called_once()
         print(self.con.context)
