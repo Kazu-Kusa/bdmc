@@ -150,7 +150,12 @@ class CloseLoopController:
         }
 
         func_header = f"def {function_name}()->None:\n"
-        output_unpack_string = (",".join(f"__context['{k}']" for k in output_keys) + "=") if output_keys else ""
+
+        if len(output_keys) > 1:
+            output_unpack_string = (",".join(f"__context['{k}']" for k in output_keys) + "=") if output_keys else ""
+        else:
+            output_unpack_string = f'__context["{output_keys[0]}"]='
+
         if freeze_inputs:
             if collied_keys := [k for k in function_context if k in self._context]:
                 raise ValueError(
