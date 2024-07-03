@@ -2,40 +2,6 @@ import time
 from typing import Sequence
 
 from bdmc.modules.controller import MotorInfo, CloseLoopController
-from bdmc.modules.seriald import SerialClient
-
-
-def handle_user_input(serial_client: SerialClient) -> None:
-    """
-    A function that handles user input by starting a read thread, processing the input, and putting it into a command queue.
-
-    Parameters:
-    - serial_client (SerialClient): The client for serial communication.
-    - cmd_queue (Queue[ByteString]): The queue to store processed commands.
-
-    Returns:
-    - None
-    """
-    ct = 0
-    print("\n\nuser input channel opened\n" "please enter cmd below, enter [exit] to end the channel")
-
-    serial_client.start_read_thread(lambda s: print(f"\n\rout[{ct}]: {s}"))
-    try:
-
-        while True:
-            user_input = input(f"\n\rin[{ct}]: ")
-            ct += 1
-            # 对输入的内容进行处理
-            compiled_cmd = (user_input + "\r").encode("ascii")
-            serial_client.write(compiled_cmd)
-
-            if user_input.lower() == "exit":
-                break
-    except KeyboardInterrupt:
-        pass
-    finally:
-        serial_client.stop_read_thread()
-        print("\n\ruser input channel closed")
 
 
 def motor_speed_test(
@@ -59,7 +25,7 @@ def motor_speed_test(
         None
     """
     motors = len(motor_infos)
-    con = CloseLoopController(motor_infos=motor_infos, port=port).start_msg_sending()
+    con = CloseLoopController(motor_infos=motor_infos, port=port)
 
     for _ in range(laps):
 

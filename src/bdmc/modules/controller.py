@@ -1,10 +1,7 @@
-from queue import Queue
-from threading import Thread
 from time import sleep, time
 from typing import (
     List,
     Optional,
-    ByteString,
     Literal,
     TypeAlias,
     Sequence,
@@ -17,13 +14,24 @@ from typing import (
     Tuple,
 )
 
+from pydantic import BaseModel
+
 from bdmc.modules.cmd import CMD
-from bdmc.modules.logger import _logger
-from bdmc.modules.seriald import SerialClient
 
 Context: TypeAlias = Dict[str, Any]
 DIRECTION: TypeAlias = Literal[1, -1]
 GT = TypeVar("GT", bound=Hashable)
+from serial import Serial, EIGHTBITS, PARITY_NONE, STOPBITS_ONE
+from bdmc.modules.logger import _logger
+
+
+class SerialConfig(BaseModel):
+
+    baudrate: Literal[9600, 19200, 38400, 57600, 115200] = 115200
+    bytesize: int = EIGHTBITS
+    parity: str = PARITY_NONE
+    stopbits: int = STOPBITS_ONE
+    timeout: int = 2
 
 
 class MotorInfo:
@@ -85,20 +93,40 @@ class CloseLoopController:
     def __init__(
         self,
         motor_infos: Sequence[MotorInfo] = ClassicMIs,
-        port: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
-        search_available_port: bool = False,
+        config: SerialConfig = None,
+        port: Optional[str] = None,
     ) -> None:
-
+        config = config or SerialConfig()
         if len(motor_infos) != len(set(motor_infos)):
             raise ValueError("Motor infos must be unique.")
 
-        self._serial: SerialClient = SerialClient(port=port, search_available_port=search_available_port)
+        self._serial: Serial = Serial(**config.dict())
+        if port:
+            self.open(port)
         self._motor_infos: Sequence[MotorInfo] = motor_infos
-        self._cmd_queue: Queue[ByteString] = Queue()
-        self._msg_send_thread: Optional[Thread] = None
-        self._msg_send_thread_should_run: bool = True
         self._context: Dict[str, Any] = context or {}
+
+    def open(self, port: str) -> Self:
+        """
+        Open the port
+        """
+        _logger.info(f"Connecting port [{port}]")
+        try:
+            self._serial.port = port
+            self._serial.open()
+        except Exception as e:
+            _logger.critical(f"Cant open port {port}, {e}")
+        return self
+
+    def close(self) -> Self:
+        _logger.info(f"Closing serial port [{self._serial.port}]")
+        try:
+
+            self._serial.close()
+        except Exception as e:
+            _logger.critical(f"Cant close port {self._serial.port}, {e}")
+        return self
 
     def register_context_executor(
         self,
@@ -217,6 +245,10 @@ class CloseLoopController:
         return self
 
     @property
+    def seriald(self) -> Serial:
+        return self._serial
+
+    @property
     def context(self) -> Dict[str, Any]:
         """
         Returns the context dictionary of the object.
@@ -254,72 +286,6 @@ class CloseLoopController:
         """
         self._motor_infos = value
 
-    @property
-    def cmd_queue(self) -> Queue[ByteString]:
-        """
-        Return the message queue.
-        """
-        return self._cmd_queue
-
-    @property
-    def serial_client(self) -> SerialClient:
-        """
-        A property that returns the serial client.
-        """
-        return self._serial
-
-    def stop_msg_sending(self) -> Self:
-        """
-        Stop the message sending by setting the _msg_send_thread_should_run flag to False and joining the message send thread.
-        """
-        if self._msg_send_thread is None:
-            _logger.error("Message sending thread is not running.")
-            return self
-        _logger.info("Try to stop message sending thread.")
-        while not self._cmd_queue.empty():
-            sleep(0.1)
-
-        self._msg_send_thread_should_run = False
-        self._cmd_queue.put(b"\r")
-        self._msg_send_thread.join()
-        self._msg_send_thread = None
-        return self
-
-    def start_msg_sending(self) -> Self:
-        """
-        A description of the entire function, its parameters, and its return types.
-        """
-
-        if not self._serial.is_connected:
-            _logger.error("Serial port is not connected")
-            if not self._serial.open():
-                _logger.error(f"Failed to open serial port {self._serial.port}")
-                return self
-
-        _logger.info("MSG sending thread starting")
-        self._msg_send_thread_should_run = True
-
-        cmd_queue_get = self._cmd_queue.get
-        serial_write = self._serial.write
-
-        def _msg_sending_loop() -> None:
-            """
-            A function that handles the sending of messages in a loop.
-            It continuously retrieves messages from a queue and writes them to a channel until the thread should stop running.
-            Returns None.
-            """
-
-            while self._msg_send_thread_should_run:
-                temp = cmd_queue_get()
-                _logger.debug(f"Writing {temp} to channel.")
-                serial_write(temp)
-            _logger.info("MSG sending thread sopped")
-
-        self._msg_send_thread = Thread(name="msg_send_thread", target=_msg_sending_loop, daemon=True)
-        self._msg_send_thread.start()
-        _logger.info("MSG sending thread started")
-        return self
-
     def set_motors_speed(self, speeds: Sequence[int | float]) -> Self:
         """
         Set the speed for each motor based on the provided speed_list.
@@ -333,12 +299,10 @@ class CloseLoopController:
 
         if len(speeds) != len(self._motor_infos):
             raise ValueError("Length of speed_list must be equal to the number of motors")
-        self._cmd_queue.put(
-            (
-                "".join(
-                    f"{motor_info.code_sign}v{int(speed * motor_info.direction)}\r"
-                    for motor_info, speed in zip(self._motor_infos, speeds)
-                )
+        self._serial.write(
+            "".join(
+                f"{motor_info.code_sign}v{int(speed * motor_info.direction)}\r"
+                for motor_info, speed in zip(self._motor_infos, speeds)
             ).encode("ascii")
         )
         return self
@@ -353,7 +317,7 @@ class CloseLoopController:
         Returns:
             Self: Returns the instance of the class.
         """
-        self._cmd_queue.put(cmd.value)
+        self._serial.write(cmd.value)
         return self
 
     def delay_b(
