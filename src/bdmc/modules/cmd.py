@@ -1,17 +1,16 @@
 from enum import Enum
 
-
 class CMD(Enum):
     """
-    CMDs that is a constant
+    Constants for various commands used to control a device.
     """
 
-    RESET = b"RESET\r"  # 重新启动
-    FULL_STOP = b"v0\r"  # 停止电机
+    RESET = b"RESET\r"  # Restart the device
+    FULL_STOP = b"v0\r"  # Stop the motor
 
-    ADL = b"ADL\r"  # 定义逆时针方向为正
-    ADR = b"ADR\r"  # 定义顺时针方向为正
+    ADL = b"ADL\r"  # Define counterclockwise direction as positive
+    ADR = b"ADR\r"  # Define clockwise direction as positive
 
-    NPOFF = b"NPOFF\r"  # 关闭位置应答
-    NVOFF = b"NVOFF\r"  # 关闭速度应答
-    EEPSAVE = b"EEPSAVE\r"  # 将参数写入驱动器EERPROM
+    NPOFF = b"NPOFF\r"  # Disable position response
+    NVOFF = b"NVOFF\r"  # Disable velocity response
+    EEPSAVE = b"EEPSAVE\r"  # Write parameters to the driver's EEPROM

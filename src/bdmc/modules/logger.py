@@ -2,15 +2,14 @@ import logging
 
 import coloredlogs
 
-# 初始化logger
 _logger = logging.getLogger("bdmc")
 coloredlogs.install(logger=_logger, level=logging.DEBUG)
 
 
 def set_log_level(level: int | str):
     """
-    设置日志级别
-    :param level: 日志级别
+    Set log level.
+    :param level: 
     :return:
     """
     _logger.setLevel(level)

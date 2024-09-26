@@ -101,7 +101,7 @@ class CloseLoopController:
         if len(motor_infos) != len(set(motor_infos)):
             raise ValueError("Motor infos must be unique.")
 
-        self._serial: Serial = Serial(**config.dict())
+        self._serial: Serial = Serial(**config.model_dump())
         if port:
             self.open(port)
         self._motor_infos: Sequence[MotorInfo] = motor_infos
@@ -120,6 +120,10 @@ class CloseLoopController:
         return self
 
     def close(self) -> Self:
+        """
+        Close the port
+        :return:
+        """
         _logger.info(f"Closing serial port [{self._serial.port}]")
         try:
 
@@ -246,6 +250,10 @@ class CloseLoopController:
 
     @property
     def seriald(self) -> Serial:
+        """
+        Returns the serial object associated with the class instance.
+        :return:
+        """
         return self._serial
 
     @property
