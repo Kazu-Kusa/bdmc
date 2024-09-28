@@ -47,8 +47,8 @@ port = "tty0"
 # port="COM3"  on windows, device name differ from that in  the linux
 
 # Create the controller obj, with starting the msg sending thread and send a broadcast RESET cmd to init the motors being controlled
-con = (CloseLoopController(motor_infos=motor_seq, port=port)
-       .start_msg_sending()
+con = (CloseLoopController(motor_infos=motor_seq)
+       .open(port)
        .send_cmd(CMD.RESET))
 
 # Use the set_motors_speed method, to set all 4 motors speed.
